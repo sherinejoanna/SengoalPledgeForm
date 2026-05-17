@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Pledge {
+  id                String   @id @default(uuid())
+  fullName          String
+  mobile            String
+  email             String?
+  address           String
+  pinCode           String
+  oilType           String?
+  monthlyQty        String
+  signature         String   @db.Text
+  signatureName     String?
+  pledgeDate        DateTime
+  isVerified        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([mobile])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
