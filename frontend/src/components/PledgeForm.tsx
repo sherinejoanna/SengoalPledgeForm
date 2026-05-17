@@ -65,10 +65,40 @@ export default function PledgeForm() {
     }
     setSigError(false)
     setIsSubmitting(true)
-    await new Promise(r => setTimeout(r, 1800))
-    setIsSubmitting(false)
-    setShowSuccess(true)
-    console.log('Form submitted:', data, 'Signature:', savedSignature)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+      const response = await fetch(`${apiUrl}/pledges`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          mobile: data.mobile,
+          email: data.email || undefined,
+          address: data.address,
+          pinCode: data.pinCode,
+          oilType: data.oilType || undefined,
+          monthlyQty: data.monthlyQty,
+          signature: savedSignature,
+          signatureName: data.signatureName || undefined,
+          pledgeDate: data.pledgeDate,
+        }),
+      })
+
+      const resData = await response.json()
+      if (!response.ok) {
+        throw new Error(resData.message || 'Failed to submit pledge')
+      }
+
+      setIsSubmitting(false)
+      setShowSuccess(true)
+      console.log('Form submitted successfully:', resData)
+    } catch (err: any) {
+      setIsSubmitting(false)
+      alert(err.message || 'An error occurred while submitting the pledge. Please try again.')
+      console.error('Submission error:', err)
+    }
   }
 
   return (
