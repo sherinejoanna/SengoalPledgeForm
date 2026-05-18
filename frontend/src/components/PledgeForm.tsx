@@ -260,7 +260,10 @@ export default function PledgeForm() {
               <div className="form-group sm:col-span-2">
                 <label className="label-field">Address / Area <span className="text-red-500">*</span></label>
                 <textarea
-                  {...register('address', { required: 'Address is required' })}
+                  {...register('address', { 
+                    required: 'Address is required',
+                    minLength: { value: 6, message: 'Address must be more than 5 characters' }
+                  })}
                   placeholder="House No., Street, Area, City"
                   rows={2}
                   className={`input-field resize-none ${errors.address ? 'border-red-400' : ''}`}
