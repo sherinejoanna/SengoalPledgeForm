@@ -363,7 +363,7 @@ export default function PledgeForm() {
                 className="w-5 h-5 accent-forest-700 mt-0.5 flex-shrink-0 cursor-pointer"
               />
               <span className="text-sm font-medium text-forest-700 leading-relaxed group-hover:text-forest-900">
-                I/We understand that ₹70 per litre will be paid for eligible used cooking oil collected under this initiative.
+                I/We understand that ₹70 per litre will be paid by the company to me/us for eligible used cooking oil collected under this initiative.
               </span>
             </label>
             {errors.incentiveConsent && (
