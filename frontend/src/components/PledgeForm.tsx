@@ -88,7 +88,12 @@ export default function PledgeForm() {
 
       const resData = await response.json()
       if (!response.ok) {
-        throw new Error(resData.message || 'Failed to submit pledge')
+        let errorMsg = resData.message || 'Failed to submit pledge'
+        if (resData.errors && resData.errors.length > 0) {
+          const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+          errorMsg = `${errorMsg} - ${details}`
+        }
+        throw new Error(errorMsg)
       }
 
       setIsSubmitting(false)
