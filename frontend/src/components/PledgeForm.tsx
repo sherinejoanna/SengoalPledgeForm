@@ -31,7 +31,7 @@ interface FormData {
 
 // ── Pledge items ───────────────────────────────────────────────────────────────
 const pledgeItems = [
-  { id: 'agreeStore', icon: Droplets, text: 'Store used cooking oil separately in a clean, sealed container' },
+  { id: 'agreeStore', icon: Droplets, text: 'Store used cooking oil separately in the company issued container' },
   { id: 'agreeHandOver', icon: ShieldCheck, text: 'Hand it over to our authorized collection team' },
   { id: 'agreeAvoidPouring', icon: Recycle, text: 'Avoid pouring used oil into drains, soil, or regular bins' },
   { id: 'agreeSupport', icon: Leaf, text: 'Support responsible, eco-friendly recycling' },
@@ -352,7 +352,7 @@ export default function PledgeForm() {
                 <h3 className="font-display font-bold text-forest-800 text-lg mb-1">Incentive Details</h3>
                 <p className="text-forest-700 text-sm leading-relaxed">
                   <strong className="text-2xl font-black text-forest-800">₹70</strong>{' '}
-                  per litre will be paid for eligible used cooking oil collected under this initiative.
+                  per litre will be paid by the company to you for eligible used cooking oil collected under this initiative.
                 </p>
               </div>
             </div>
