@@ -11,7 +11,9 @@ const app = express();
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['http://localhost:5173', 'https://endearing-dusk-39044d.netlify.app'],
   credentials: true,
 }));
 

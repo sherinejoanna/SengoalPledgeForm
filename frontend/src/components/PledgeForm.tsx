@@ -66,7 +66,7 @@ export default function PledgeForm() {
     setSigError(false)
     setIsSubmitting(true)
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
       const response = await fetch(`${apiUrl}/pledges`, {
         method: 'POST',
         headers: {
