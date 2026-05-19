@@ -65,45 +65,56 @@ export default function PledgeForm() {
     }
     setSigError(false)
     setIsSubmitting(true)
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
-      const response = await fetch(`${apiUrl}/pledges`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fullName: data.fullName,
-          mobile: data.mobile,
-          email: data.email || undefined,
-          address: data.address,
-          pinCode: data.pinCode,
-          oilType: data.oilType || undefined,
-          monthlyQty: data.monthlyQty,
-          signature: savedSignature,
-          signatureName: data.signatureName || undefined,
-          pledgeDate: data.pledgeDate,
-        }),
-      })
 
-      const resData = await response.json()
-      if (!response.ok) {
-        let errorMsg = resData.message || 'Failed to submit pledge'
-        if (resData.errors && resData.errors.length > 0) {
-          const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
-          errorMsg = `${errorMsg} - ${details}`
+    // Show success immediately — optimistic UI (feels instant!)
+    // Then save to backend in the background
+    const payload = JSON.stringify({
+      fullName: data.fullName,
+      mobile: data.mobile,
+      email: data.email || undefined,
+      address: data.address,
+      pinCode: data.pinCode,
+      oilType: data.oilType || undefined,
+      monthlyQty: data.monthlyQty,
+      signature: savedSignature,
+      signatureName: data.signatureName || undefined,
+      pledgeDate: data.pledgeDate,
+    })
+
+    // Show success right away — don't make user wait
+    setIsSubmitting(false)
+    setShowSuccess(true)
+
+    // Fire-and-forget: save to DB in background with retry
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
+    const saveToBackend = async (attempt = 1): Promise<void> => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
+        const response = await fetch(`${apiUrl}/pledges`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+        const resData = await response.json()
+        if (!response.ok) {
+          console.error('Background save failed:', resData.message)
+        } else {
+          console.log('Pledge saved successfully:', resData.data?.id)
         }
-        throw new Error(errorMsg)
+      } catch (err: any) {
+        // Retry once on timeout/network error (cold start can take ~30s)
+        if (attempt < 2) {
+          console.warn(`Background save attempt ${attempt} failed, retrying...`, err.message)
+          await new Promise(r => setTimeout(r, 5000)) // wait 5s then retry
+          return saveToBackend(attempt + 1)
+        }
+        console.error('Background save ultimately failed:', err.message)
       }
-
-      setIsSubmitting(false)
-      setShowSuccess(true)
-      console.log('Form submitted successfully:', resData)
-    } catch (err: any) {
-      setIsSubmitting(false)
-      alert(err.message || 'An error occurred while submitting the pledge. Please try again.')
-      console.error('Submission error:', err)
     }
+    saveToBackend()
   }
 
   return (
