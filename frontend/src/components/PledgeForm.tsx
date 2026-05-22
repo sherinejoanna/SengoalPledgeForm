@@ -9,6 +9,7 @@ import {
 import SignaturePad from './SignaturePad'
 import type { SignaturePadRef } from './SignaturePad'
 import SuccessModal from './SuccessModal'
+import TermsAndConditions from './TermsAndConditions'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface FormData {
@@ -459,6 +460,9 @@ export default function PledgeForm() {
               </div>
             </div>
           </motion.div>
+
+          {/* ── Terms and Conditions ── */}
+          <TermsAndConditions />
 
           {/* ── Submit Button ── */}
           <motion.div
