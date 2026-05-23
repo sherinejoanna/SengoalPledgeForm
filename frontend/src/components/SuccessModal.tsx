@@ -55,11 +55,10 @@ export default function SuccessModal({ isOpen }: SuccessModalProps) {
               className="text-center"
             >
               <h2 className="font-display font-extrabold text-2xl text-forest-800 mb-3 leading-tight">
-                Thank You For Joining The<br />
-                <span className="text-gradient-gold">Circular Energy Movement</span>
+                Thank you for showing interest!
               </h2>
               <p className="text-forest-600 text-sm leading-relaxed mb-6">
-                Your pledge has been successfully submitted. Our team will contact you soon regarding collection scheduling.
+                We'll reach out to you regarding our first roll-out as soon as possible.
               </p>
 
               {/* Highlights */}

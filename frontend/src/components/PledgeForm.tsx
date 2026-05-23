@@ -4,12 +4,13 @@ import { motion } from 'framer-motion'
 import {
   Droplets, ShieldCheck, Leaf, Recycle, CheckCircle2,
   Loader2, Info,
-  Wifi, Truck
+  Wifi, Truck, Tag
 } from 'lucide-react'
 import SignaturePad from './SignaturePad'
 import type { SignaturePadRef } from './SignaturePad'
 import SuccessModal from './SuccessModal'
 import TermsAndConditions from './TermsAndConditions'
+import PrivacyNotice from './PrivacyNotice'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface FormData {
@@ -28,6 +29,8 @@ interface FormData {
   agreeHandOver: boolean
   agreeAvoidPouring: boolean
   agreeSupport: boolean
+  agreeTerms: boolean
+  agreePrivacy: boolean
 }
 
 // ── Pledge items ───────────────────────────────────────────────────────────────
@@ -46,6 +49,8 @@ export default function PledgeForm() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [sigError, setSigError] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
 
   const {
     register,
@@ -58,6 +63,15 @@ export default function PledgeForm() {
       monthlyQty: '',
     },
   })
+
+  const onInvalid = (errors: any) => {
+    if (errors.agreeTerms) {
+      setTermsOpen(true)
+    }
+    if (errors.agreePrivacy) {
+      setPrivacyOpen(true)
+    }
+  }
 
   const onSubmit = async (data: FormData) => {
     if (!savedSignature) {
@@ -153,15 +167,16 @@ export default function PledgeForm() {
               Join the Sustainable Used Cooking Oil Initiative
             </p>
             <p className="text-white/50 text-sm max-w-xl mx-auto leading-relaxed">
-              Your used cooking oil doesn't have to go to waste, it can be recycled into sustainable aviation fuel, reducing pollution and powering a cleaner future.
-            </p>
+  Your used cooking oil doesn't have to go to waste, it can be recycled into sustainable aviation fuel, reducing pollution and powering a cleaner future.
+</p>
+
           </motion.div>
         </div>
       </div>
 
       {/* Form body */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 -mt-8 relative z-10">
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
 
           {/* ── I/We Agree To ── */}
           <motion.div
@@ -311,6 +326,27 @@ export default function PledgeForm() {
             </div>
           </motion.div>
 
+          {/* ── Cost of Oil Section ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65, duration: 0.5 }}
+            className="bg-white rounded-3xl shadow-card border border-forest-100 p-6 md:p-8 mb-8 relative overflow-hidden"
+          >
+            <div className="absolute -top-8 -right-8 w-32 h-32 bg-forest-50/50 rounded-full blur-2xl" />
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-forest-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Tag className="w-6 h-6 text-gold" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-display font-bold text-forest-800 text-lg mb-1">Cost of Oil</h3>
+                <p className="text-forest-700 text-sm leading-relaxed">
+                  Fresh cooking oil will be supplied at a cost ranging from <strong className="font-semibold text-forest-900">₹50 to ₹80 per litre</strong>, with a potential <strong className="font-semibold text-forest-900">20% discount</strong> available.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
           {/* ── How Collection Works ── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -394,18 +430,28 @@ export default function PledgeForm() {
             className="bg-white rounded-3xl shadow-card border border-forest-100 p-6 md:p-8 mb-8"
           >
             <h2 className="font-display font-bold text-xl text-forest-800 mb-5">Consent & Declaration</h2>
-            <label className="flex items-start gap-3 cursor-pointer group bg-forest-50 rounded-2xl p-4 border border-forest-100 hover:border-forest-300 transition-colors">
-              <input
-                type="checkbox"
-                {...register('voluntaryConsent', { required: 'Please provide your consent to proceed' })}
-                className="w-5 h-5 accent-forest-700 mt-0.5 flex-shrink-0 cursor-pointer"
-              />
-              <span className="text-sm font-medium text-forest-700 leading-relaxed group-hover:text-forest-900">
-                I/We voluntarily agree to participate in this UCO collection initiative, confirm the details above are accurate, and consent to being contacted for collection scheduling and project updates.
-              </span>
-            </label>
+            <div className="bg-forest-50 rounded-2xl p-5 border border-forest-100">
+              <label className="flex items-start gap-3 cursor-pointer group transition-colors">
+                <input
+                  type="checkbox"
+                  {...register('voluntaryConsent', { required: 'You must agree to the consent terms to submit' })}
+                  className="w-5 h-5 accent-forest-700 mt-0.5 flex-shrink-0 cursor-pointer"
+                />
+                <div className="text-sm font-medium text-forest-700 leading-relaxed group-hover:text-forest-900">
+                  <p className="mb-3 font-semibold">
+                    I agree to Seyon Energy (Sengoal) collecting and storing my name, address, WhatsApp number, and estimated used cooking oil volume for the purpose of the UCO Pledge Programme. I understand that:
+                  </p>
+                  <ol className="list-decimal pl-5 space-y-2 text-xs font-normal text-forest-600">
+                    <li>My data will not be sold to third parties or used for advertising.</li>
+                    <li>I can withdraw this consent and request deletion of my data at any time by contacting <a href="mailto:privacy@seyonenergy.in" className="text-forest-700 underline font-semibold hover:text-gold">privacy@seyonenergy.in</a>.</li>
+                    <li>Anonymised aggregate data (e.g., total litres pledged) may be used in investor and research reports.</li>
+                    <li>I have read and understood the full Consent & Privacy Notice at <a href="https://seyonenergy.in/privacy" target="_blank" rel="noopener noreferrer" className="text-forest-700 underline font-semibold hover:text-gold">seyonenergy.in/privacy</a>.</li>
+                  </ol>
+                </div>
+              </label>
+            </div>
             {errors.voluntaryConsent && (
-              <p className="text-red-500 text-xs mt-2">{errors.voluntaryConsent.message}</p>
+              <p className="text-red-500 text-xs mt-3 font-semibold">{errors.voluntaryConsent.message}</p>
             )}
           </motion.div>
 
@@ -462,7 +508,20 @@ export default function PledgeForm() {
           </motion.div>
 
           {/* ── Terms and Conditions ── */}
-          <TermsAndConditions />
+          <TermsAndConditions
+            isOpen={termsOpen}
+            setIsOpen={setTermsOpen}
+            register={register}
+            error={errors.agreeTerms}
+          />
+
+          {/* ── Consent & Privacy Notice ── */}
+          <PrivacyNotice
+            isOpen={privacyOpen}
+            setIsOpen={setPrivacyOpen}
+            register={register}
+            error={errors.agreePrivacy}
+          />
 
           {/* ── Submit Button ── */}
           <motion.div

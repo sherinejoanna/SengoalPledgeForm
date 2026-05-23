@@ -1,9 +1,14 @@
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
-export default function TermsAndConditions() {
-  const [isOpen, setIsOpen] = useState(false)
+interface TermsAndConditionsProps {
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
+  register: any
+  error?: any
+}
+
+export default function TermsAndConditions({ isOpen, setIsOpen, register, error }: TermsAndConditionsProps) {
 
   return (
     <motion.div
@@ -216,6 +221,25 @@ export default function TermsAndConditions() {
               Operational Address: [Registered Office Address], Anekal, Bangalore, Karnataka, India</p>
               <p className="mb-2"><strong>23.2</strong> Complaints regarding UCO collection, Deepam Oil quality, IoT Sensor issues, UCO Payment disputes, or App functionality shall be directed to the Grievance Officer. The Grievance Officer shall acknowledge all complaints within twenty-four (24) hours and resolve them within fifteen (15) days of receipt, in accordance with Applicable Law.</p>
               <p className="mb-4"><strong>23.3</strong> For FSSAI-related food safety complaints, the User may additionally contact the FSSAI Consumer Helpline or file a complaint with the concerned Food Safety Officer for the jurisdiction.</p>
+            </div>
+
+            {/* Checkbox for Agreement (Outside scrollable text, but inside expanded accordion) */}
+            <div className="mt-6 pt-4 border-t border-forest-100">
+              <div className="p-4 bg-forest-50 rounded-2xl border border-forest-100">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    {...register('agreeTerms', { required: 'You must agree to the Terms and Conditions to proceed' })}
+                    className="w-5 h-5 accent-forest-700 mt-0.5 flex-shrink-0 cursor-pointer"
+                  />
+                  <span className="text-sm font-semibold text-forest-800 leading-relaxed group-hover:text-forest-900">
+                    I have read and unconditionally agree to all the Terms and Conditions listed above.
+                  </span>
+                </label>
+                {error && (
+                  <p className="text-red-500 text-xs mt-2 font-semibold">{error.message}</p>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
