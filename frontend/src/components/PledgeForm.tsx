@@ -341,7 +341,7 @@ export default function PledgeForm() {
               <div className="flex-1">
                 <h3 className="font-display font-bold text-forest-800 text-lg mb-1">Cost of Oil</h3>
                 <p className="text-forest-700 text-sm leading-relaxed">
-                  Fresh cooking oil will be supplied at a cost ranging from <strong className="font-semibold text-forest-900">₹50 to ₹80 per litre</strong>, with a potential <strong className="font-semibold text-forest-900">20% discount</strong> available.
+                  Fresh cooking oil will be supplied at a cost ranging from <strong className="font-semibold text-forest-900">₹140 to ₹170 per litre</strong>, with a potential <strong className="font-semibold text-forest-900">20% discount</strong> available.
                 </p>
               </div>
             </div>
