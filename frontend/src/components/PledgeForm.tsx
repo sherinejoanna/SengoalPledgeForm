@@ -95,6 +95,37 @@ export default function PledgeForm() {
     setIsSubmitting(true)
     setSubmitStatus('Connecting to server...')
 
+    // ── Backup: Send to Web3Forms ─────────────────────────────────────────────
+    const sendToWeb3Forms = async () => {
+      try {
+        await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            access_key: '01432a3f-df6b-4264-ad87-31033e30c6b3',
+            subject: 'New Seyon Pledge Backup',
+            from_name: 'Seyon Pledge Form',
+            "Full Name": data.fullName,
+            "Mobile": data.mobile,
+            "Email": data.email || "Not provided",
+            "Address": data.address,
+            "PIN Code": data.pinCode,
+            "Oil Type": data.oilType || "Not specified",
+            "Monthly Qty": data.monthlyQty,
+            "Pledge Date": data.pledgeDate,
+            "Agreed to Terms": data.agreeTerms ? "Yes" : "No",
+            "Agreed to Privacy": data.agreePrivacy ? "Yes" : "No",
+          })
+        })
+        console.log('Backup sent to Web3Forms successfully')
+      } catch (err) {
+        console.error('Web3Forms backup failed:', err)
+      }
+    }
+
+    // Fire off the Web3Forms backup in the background
+    sendToWeb3Forms()
+
     const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
     const baseUrl = apiUrl.replace('/api', '')
 
@@ -138,14 +169,7 @@ export default function PledgeForm() {
           const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
           errorMsg = `${errorMsg} — ${details}`
         }
-      } catch (err: any) {
-        // Retry once on timeout/network error (cold start can take ~30s)
-        if (attempt < 2) {
-          console.warn(`Background save attempt ${attempt} failed, retrying...`, err.message)
-          await new Promise(r => setTimeout(r, 5000)) // wait 5s then retry
-          return saveToBackend(attempt + 1)
-        }
-        console.error('Background save ultimately failed:', err.message)
+        throw new Error(errorMsg)
       }
 
       setIsSubmitting(false)
@@ -161,7 +185,6 @@ export default function PledgeForm() {
       alert(msg)
       console.error('Submission error:', err)
     }
-    saveToBackend()
   }
 
   return (
