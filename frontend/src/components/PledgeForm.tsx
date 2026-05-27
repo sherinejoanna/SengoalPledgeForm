@@ -41,6 +41,18 @@ const pledgeItems = [
   { id: 'agreeSupport', icon: Leaf, text: 'Support responsible, eco-friendly recycling' },
 ] as const
 
+// ── Helper: fetch with timeout ──────────────────────────────────────────────────
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function PledgeForm() {
   const today = new Date().toISOString().split('T')[0]
@@ -48,6 +60,7 @@ export default function PledgeForm() {
   const [savedSignature, setSavedSignature] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<string>('')
   const [sigError, setSigError] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
@@ -80,44 +93,50 @@ export default function PledgeForm() {
     }
     setSigError(false)
     setIsSubmitting(true)
+    setSubmitStatus('Connecting to server...')
 
-    // Show success immediately — optimistic UI (feels instant!)
-    // Then save to backend in the background
-    const payload = JSON.stringify({
-      fullName: data.fullName,
-      mobile: data.mobile,
-      email: data.email || undefined,
-      address: data.address,
-      pinCode: data.pinCode,
-      oilType: data.oilType || undefined,
-      monthlyQty: data.monthlyQty,
-      signature: savedSignature,
-      signatureName: data.signatureName || undefined,
-      pledgeDate: data.pledgeDate,
-    })
-
-    // Show success right away — don't make user wait
-    setIsSubmitting(false)
-    setShowSuccess(true)
-
-    // Fire-and-forget: save to DB in background with retry
     const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
-    const saveToBackend = async (attempt = 1): Promise<void> => {
+    const baseUrl = apiUrl.replace('/api', '')
+
+    try {
+      // ── Step 1: Wake up the server (Render free tier sleeps after inactivity) ──
       try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
-        const response = await fetch(`${apiUrl}/pledges`, {
+        setSubmitStatus('Server is waking up, please wait (this may take up to 30 seconds)...')
+        await fetchWithTimeout(`${baseUrl}/health`, { method: 'GET' }, 45000)
+        setSubmitStatus('Server ready. Submitting your pledge...')
+      } catch {
+        // If health ping fails/times out, still try submitting — it may have woken up
+        setSubmitStatus('Submitting your pledge...')
+      }
+
+      // ── Step 2: Submit the actual pledge ──────────────────────────────────────
+      const response = await fetchWithTimeout(
+        `${apiUrl}/pledges`,
+        {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: payload,
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-        const resData = await response.json()
-        if (!response.ok) {
-          console.error('Background save failed:', resData.message)
-        } else {
-          console.log('Pledge saved successfully:', resData.data?.id)
+          body: JSON.stringify({
+            fullName: data.fullName,
+            mobile: data.mobile,
+            email: data.email || undefined,
+            address: data.address,
+            pinCode: data.pinCode,
+            oilType: data.oilType || undefined,
+            monthlyQty: data.monthlyQty,
+            signature: savedSignature,
+            signatureName: data.signatureName || undefined,
+            pledgeDate: data.pledgeDate,
+          }),
+        },
+        60000, // 60-second timeout for the actual submission
+      )
+
+      const resData = await response.json()
+      if (!response.ok) {
+        let errorMsg = resData.message || 'Failed to submit pledge'
+        if (resData.errors && resData.errors.length > 0) {
+          const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+          errorMsg = `${errorMsg} — ${details}`
         }
       } catch (err: any) {
         // Retry once on timeout/network error (cold start can take ~30s)
@@ -128,6 +147,19 @@ export default function PledgeForm() {
         }
         console.error('Background save ultimately failed:', err.message)
       }
+
+      setIsSubmitting(false)
+      setSubmitStatus('')
+      setShowSuccess(true)
+      console.log('Pledge saved successfully:', resData?.data?.id)
+    } catch (err: any) {
+      setIsSubmitting(false)
+      setSubmitStatus('')
+      const msg = err.name === 'AbortError'
+        ? 'The request timed out. The server may be starting up — please wait a moment and try again.'
+        : (err.message || 'An error occurred while submitting the pledge. Please try again.')
+      alert(msg)
+      console.error('Submission error:', err)
     }
     saveToBackend()
   }
@@ -541,7 +573,7 @@ export default function PledgeForm() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Submitting Your Pledge...
+                  Please Wait...
                 </>
               ) : (
                 <>
@@ -549,6 +581,14 @@ export default function PledgeForm() {
                 </>
               )}
             </button>
+
+            {/* Live status message shown during cold-start wake-up */}
+            {isSubmitting && submitStatus && (
+              <div className="mt-4 flex items-center gap-2 justify-center bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
+                <Loader2 className="w-4 h-4 animate-spin text-gold flex-shrink-0" />
+                <p className="text-forest-700 text-sm font-medium text-center">{submitStatus}</p>
+              </div>
+            )}
 
             <p className="text-center text-forest-400 text-xs mt-4">
               By submitting, you agree to our Privacy Policy and Terms of Service.
