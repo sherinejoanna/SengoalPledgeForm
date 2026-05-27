@@ -13,7 +13,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:5173', 'https://endearing-dusk-39044d.netlify.app'],
+    : ['http://localhost:5173', 'https://sengoalpledgeform.netlify.app', 'https://endearing-dusk-39044d.netlify.app'],
   credentials: true,
 }));
 
