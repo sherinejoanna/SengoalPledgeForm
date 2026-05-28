@@ -36,6 +36,10 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+app.get('/', (_req, res) => {
+  res.redirect('/health');
+});
+
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
