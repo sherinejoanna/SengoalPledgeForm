@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import { PledgeController } from '../controllers/pledge.controller';
 import { AuthController } from '../controllers/auth.controller';
+import { TestController } from '../controllers/test.controller';
 import { authenticate, authorize } from '../middlewares/auth.middleware';
 import { submissionLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
 // ── PUBLIC ROUTES ─────────────────────────────────────────────────────────────
+// POST /api/test-data - submit dynamic test data to test table
+router.post('/test-data', TestController.insertTestData);
+
 // POST /api/pledges  — submit a pledge (rate limited)
 router.post('/pledges', submissionLimiter, PledgeController.create);
 
