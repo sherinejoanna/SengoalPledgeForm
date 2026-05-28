@@ -1,14 +1,4 @@
-import { useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
-import IntroScreen from './components/IntroScreen'
-import PledgeForm from './components/PledgeForm'
-
-export default function App() {
-  const [showForm, setShowForm] = useState(false)
-
-
-
-  return (
+export default function App() {  return (
     <div className="min-h-screen font-sans bg-forest-900 flex items-center justify-center overflow-hidden">
       <div className="text-center p-8 bg-forest-800/80 backdrop-blur-md rounded-2xl border border-earth-300/20 shadow-2xl">
         <h1 className="text-4xl md:text-5xl font-serif font-bold text-earth-100 mb-4 tracking-wide">
