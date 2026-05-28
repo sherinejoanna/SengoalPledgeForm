@@ -9,8 +9,8 @@ const RENDER_PASSWORD = process.env.RENDER_PASSWORD || '';
 
 // The correct Supabase env vars to set on Render:
 const ENV_VARS = {
-  DATABASE_URL: 'postgresql://postgres.ogrtlaoitthdflbyxldo:Seyon_Blr$$@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true',
-  DIRECT_URL:   'postgresql://postgres.ogrtlaoitthdflbyxldo:Seyon_Blr$$@aws-0-ap-south-1.pooler.supabase.com:5432/postgres',
+  DATABASE_URL: 'postgresql://postgres.ogrtlaoitthdflbyxldo:SeyonBlr2026@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true',
+  DIRECT_URL:   'postgresql://postgres.ogrtlaoitthdflbyxldo:SeyonBlr2026@aws-0-ap-south-1.pooler.supabase.com:5432/postgres',
 };
 // ──────────────────────────────────────────────────────────────────────────────
 
