@@ -51,6 +51,9 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter)
 
 // 6. Routes
+app.get('/', (_req, res) => {
+  res.redirect('/health')
+})
 app.use('/health', healthRoutes) // root level health check
 app.use('/api/health', healthRoutes) // /api prefixed health check
 app.use('/api/pledges', pledgeRoutes)
