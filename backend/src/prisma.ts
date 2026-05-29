@@ -4,6 +4,9 @@ import { PrismaClient } from '@prisma/client'
 // exhausting your database connection limit.
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
+const dbUrl = process.env.DATABASE_URL || 'NOT SET'
+console.log('🔧 DATABASE_URL:', dbUrl.replace(/:[^:@]+@/, ':****@'))
+
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
