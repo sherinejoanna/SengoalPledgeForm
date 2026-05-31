@@ -35,3 +35,7 @@ pnpm-debug.log*
 # Local Netlify folder
 .netlify
 chrome-profile/
+
+# Ignore nested clone/duplicate folder and zip files
+PLEDGEFORM/
+*.zip
