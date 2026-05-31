@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import {
@@ -79,6 +79,17 @@ export default function PledgeForm() {
     },
   })
 
+  // Pre-warm the backend server on component mount (cold boot mitigation)
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
+    const baseUrl = apiUrl.replace('/api', '')
+    
+    console.log('Pre-warming backend server in background...')
+    fetch(`${baseUrl}/health`).catch((err) => {
+      console.log('Pre-warm request completed/ignored:', err)
+    })
+  }, [])
+
   const onInvalid = (errors: any) => {
     if (errors.agreeTerms) {
       setTermsOpen(true)
@@ -142,34 +153,66 @@ export default function PledgeForm() {
         setSubmitStatus('Submitting your pledge...')
       }
 
-      // ── Step 2: Submit the actual pledge ──────────────────────────────────────
-      const response = await fetchWithTimeout(
-        `${apiUrl}/pledges`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: data.fullName,
-            mobile: data.mobile,
-            email: data.email || undefined,
-            address: data.address,
-            pinCode: data.pinCode,
-            oilType: data.oilType || undefined,
-            monthlyQty: data.monthlyQty,
-            signature: savedSignature,
-            signatureName: data.signatureName || undefined,
-            pledgeDate: data.pledgeDate,
-          }),
-        },
-        60000, // 60-second timeout for the actual submission
-      )
+      // ── Step 2: Submit the actual pledge (with automatic retries for stability) ──
+      let response: Response | null = null
+      let resData: any = null
+      const retries = 3
+      let delayMs = 2500
 
-      const resData = await response.json()
-      if (!response.ok) {
-        let errorMsg = resData.message || 'Failed to submit pledge'
-        if (resData.errors && resData.errors.length > 0) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          response = await fetchWithTimeout(
+            `${apiUrl}/pledges`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fullName: data.fullName,
+                mobile: data.mobile,
+                email: data.email || undefined,
+                address: data.address,
+                pinCode: data.pinCode,
+                oilType: data.oilType || undefined,
+                monthlyQty: data.monthlyQty,
+                signature: savedSignature,
+                signatureName: data.signatureName || undefined,
+                pledgeDate: data.pledgeDate,
+              }),
+            },
+            60000, // 60-second timeout for the actual submission
+          )
+
+          resData = await response.json()
+          
+          if (response.ok || response.status === 400) {
+            // Success or validation error (400) — stop retrying
+            break
+          }
+
+          // Any other status code (e.g. 502, 503) — retry if attempts left
+          if (attempt < retries) {
+            console.warn(`Submission attempt ${attempt} failed with status ${response.status}. Retrying in ${delayMs}ms...`)
+            setSubmitStatus(`Server busy. Retrying submission (Attempt ${attempt + 1}/${retries})...`)
+            await new Promise((resolve) => setTimeout(resolve, delayMs))
+            delayMs *= 1.5 // Exponential backoff
+          }
+        } catch (err: any) {
+          if (attempt < retries) {
+            console.warn(`Submission attempt ${attempt} failed with error: ${err.message}. Retrying in ${delayMs}ms...`)
+            setSubmitStatus(`Connection issue. Retrying (Attempt ${attempt + 1}/${retries})...`)
+            await new Promise((resolve) => setTimeout(resolve, delayMs))
+            delayMs *= 1.5
+          } else {
+            throw err // Re-throw error on the last attempt
+          }
+        }
+      }
+
+      if (!response || !response.ok) {
+        const errorMsg = resData?.message || 'Failed to submit pledge after multiple attempts'
+        if (resData?.errors && resData.errors.length > 0) {
           const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
-          errorMsg = `${errorMsg} — ${details}`
+          throw new Error(`${errorMsg} — ${details}`)
         }
         throw new Error(errorMsg)
       }
