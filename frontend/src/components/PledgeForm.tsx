@@ -59,6 +59,8 @@ export default function PledgeForm() {
   const sigPadRef = useRef<SignaturePadRef>(null)
   const [savedSignature, setSavedSignature] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [modalStatus, setModalStatus] = useState<'success' | 'error'>('success')
+  const [modalErrorMessage, setModalErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<string>('')
   const [sigError, setSigError] = useState(false)
@@ -174,6 +176,7 @@ export default function PledgeForm() {
 
       setIsSubmitting(false)
       setSubmitStatus('')
+      setModalStatus('success')
       setShowSuccess(true)
       console.log('Pledge saved successfully:', resData?.data?.id)
     } catch (err: any) {
@@ -182,7 +185,9 @@ export default function PledgeForm() {
       const msg = err.name === 'AbortError'
         ? 'The request timed out. The server may be starting up — please wait a moment and try again.'
         : (err.message || 'An error occurred while submitting the pledge. Please try again.')
-      alert(msg)
+      setModalStatus('error')
+      setModalErrorMessage(msg)
+      setShowSuccess(true)
       console.error('Submission error:', err)
     }
   }
@@ -620,8 +625,13 @@ export default function PledgeForm() {
         </form>
       </div>
 
-      {/* Success Modal */}
-      <SuccessModal isOpen={showSuccess} />
+      {/* Success / Error Modal */}
+      <SuccessModal 
+        isOpen={showSuccess} 
+        status={modalStatus} 
+        errorMessage={modalErrorMessage} 
+        onClose={() => setShowSuccess(false)} 
+      />
     </motion.div>
   )
 }
