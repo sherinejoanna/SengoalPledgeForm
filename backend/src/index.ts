@@ -111,10 +111,8 @@ function startSelfPing() {
   const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`
 
   setInterval(() => {
-    http.get(`${SERVER_URL}/health`, (res) => {
-      console.log(`[Self-Ping] Status: ${res.statusCode} at ${new Date().toISOString()}`)
-    }).on('error', (err) => {
-      console.error(`[Self-Ping] Error: ${err.message}`)
-    })
+    fetch(`${SERVER_URL}/health`)
+      .then(res => console.log(`[Self-Ping] Status: ${res.status} at ${new Date().toISOString()}`))
+      .catch(err => console.error(`[Self-Ping] Error: ${err.message}`))
   }, PING_INTERVAL)
 }
