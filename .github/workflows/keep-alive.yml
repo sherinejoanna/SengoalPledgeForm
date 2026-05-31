@@ -13,4 +13,4 @@ jobs:
     steps:
       - name: Ping Render Health Check
         run: |
-          curl -sS https://sengoal-pledge-backend.onrender.com/health || echo "Ping failed but continuing"
+          curl -sS https://sengoalpledgeform.onrender.com/health || echo "Ping failed but continuing"

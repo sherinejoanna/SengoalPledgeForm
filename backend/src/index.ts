@@ -8,6 +8,7 @@ import http from 'http'
 import pledgeRoutes from './routes/pledge.routes'
 import healthRoutes from './routes/health.routes'
 import { errorHandler } from './middlewares/errorHandler'
+import { prisma } from './prisma'
 
 dotenv.config()
 
@@ -63,28 +64,43 @@ app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-  startSelfPing()
-})
+// Test DB connection on startup before listening
+async function startServer() {
+  try {
+    console.log('⏳ Testing database connection...')
+    await prisma.$queryRaw`SELECT 1`
+    console.log('✅ Database connection successful!')
+  } catch (err: any) {
+    console.error('❌ Database connection FAILED on startup:', err.message)
+    console.error('   Check that DATABASE_URL env var is set correctly on Render.')
+    // Don't crash — let the server start anyway so health check can report the error
+  }
 
-// Graceful shutdown handling to ensure no data loss during Render restarts
-const gracefulShutdown = () => {
-  console.log('Received kill signal, shutting down gracefully')
-  server.close(() => {
-    console.log('Closed out remaining connections')
-    process.exit(0)
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`)
+    startSelfPing()
   })
 
-  // Force close after 10 seconds
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down')
-    process.exit(1)
-  }, 10000)
+  // Graceful shutdown handling to ensure no data loss during Render restarts
+  const gracefulShutdown = () => {
+    console.log('Received kill signal, shutting down gracefully')
+    server.close(() => {
+      console.log('Closed out remaining connections')
+      process.exit(0)
+    })
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+      console.error('Could not close connections in time, forcefully shutting down')
+      process.exit(1)
+    }, 10000)
+  }
+
+  process.on('SIGTERM', gracefulShutdown)
+  process.on('SIGINT', gracefulShutdown)
 }
 
-process.on('SIGTERM', gracefulShutdown)
-process.on('SIGINT', gracefulShutdown)
+startServer()
 
 // -- Self-Pinging Mechanism for Render --
 // Render free tier instances spin down after 15 mins of inactivity.
