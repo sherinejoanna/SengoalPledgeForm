@@ -3,7 +3,7 @@ services:
     name: sengoalpledgeform
     runtime: node
     rootDir: backend
-    buildCommand: npm install --production=false && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: node dist/index.js
     envVars:
       - key: NODE_ENV
