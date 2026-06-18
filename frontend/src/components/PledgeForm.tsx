@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import {
@@ -70,6 +70,7 @@ export default function PledgeForm() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -78,17 +79,6 @@ export default function PledgeForm() {
       monthlyQty: '',
     },
   })
-
-  // Pre-warm the backend server on component mount (cold boot mitigation)
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
-    const baseUrl = apiUrl.replace('/api', '')
-    
-    console.log('Pre-warming backend server in background...')
-    fetch(`${baseUrl}/health`).catch((err) => {
-      console.log('Pre-warm request completed/ignored:', err)
-    })
-  }, [])
 
   const onInvalid = (errors: any) => {
     if (errors.agreeTerms) {
@@ -139,99 +129,77 @@ export default function PledgeForm() {
     // Fire off the Web3Forms backup in the background
     sendToWeb3Forms()
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://sengoalpledgeform.onrender.com/api'
-    const baseUrl = apiUrl.replace('/api', '')
+    const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+    if (!scriptUrl) {
+      setIsSubmitting(false);
+      setSubmitStatus('');
+      setModalStatus('error');
+      setModalErrorMessage('Configuration error: VITE_GOOGLE_SCRIPT_URL is not set.');
+      setShowSuccess(true);
+      return;
+    }
 
     try {
-      // ── Step 1: Wake up the server (Render free tier sleeps after inactivity) ──
+      setSubmitStatus('Submitting your pledge...');
+      
+      const payload = {
+        fullName: data.fullName,
+        mobile: data.mobile,
+        email: data.email || undefined,
+        address: data.address,
+        pinCode: data.pinCode,
+        oilType: data.oilType || undefined,
+        monthlyQty: data.monthlyQty,
+        signature: savedSignature,
+        signatureName: data.signatureName || undefined,
+        pledgeDate: data.pledgeDate,
+      };
+
+      const response = await fetchWithTimeout(
+        scriptUrl,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+        },
+        60000 // 60-second timeout for the submission
+      );
+
+      // Handle network or unexpected errors
+      if (!response) {
+        throw new Error('Network response was null');
+      }
+
+      let resData;
       try {
-        setSubmitStatus('Server is waking up, please wait (this may take up to 30 seconds)...')
-        await fetchWithTimeout(`${baseUrl}/health`, { method: 'GET' }, 45000)
-        setSubmitStatus('Server ready. Submitting your pledge...')
-      } catch {
-        // If health ping fails/times out, still try submitting — it may have woken up
-        setSubmitStatus('Submitting your pledge...')
+        resData = await response.json();
+      } catch (parseError) {
+        // If we can't parse JSON, it's likely a network error or GAS HTML error page
+        throw new Error('Connection error. Please check your internet connection.');
       }
 
-      // ── Step 2: Submit the actual pledge (with automatic retries for stability) ──
-      let response: Response | null = null
-      let resData: any = null
-      const retries = 3
-      let delayMs = 2500
-
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-          response = await fetchWithTimeout(
-            `${apiUrl}/pledges`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                fullName: data.fullName,
-                mobile: data.mobile,
-                email: data.email || undefined,
-                address: data.address,
-                pinCode: data.pinCode,
-                oilType: data.oilType || undefined,
-                monthlyQty: data.monthlyQty,
-                signature: savedSignature,
-                signatureName: data.signatureName || undefined,
-                pledgeDate: data.pledgeDate,
-              }),
-            },
-            60000, // 60-second timeout for the actual submission
-          )
-
-          resData = await response.json()
-          
-          if (response.ok || response.status === 400) {
-            // Success or validation error (400) — stop retrying
-            break
-          }
-
-          // Any other status code (e.g. 502, 503) — retry if attempts left
-          if (attempt < retries) {
-            console.warn(`Submission attempt ${attempt} failed with status ${response.status}. Retrying in ${delayMs}ms...`)
-            setSubmitStatus(`Server busy. Retrying submission (Attempt ${attempt + 1}/${retries})...`)
-            await new Promise((resolve) => setTimeout(resolve, delayMs))
-            delayMs *= 1.5 // Exponential backoff
-          }
-        } catch (err: any) {
-          if (attempt < retries) {
-            console.warn(`Submission attempt ${attempt} failed with error: ${err.message}. Retrying in ${delayMs}ms...`)
-            setSubmitStatus(`Connection issue. Retrying (Attempt ${attempt + 1}/${retries})...`)
-            await new Promise((resolve) => setTimeout(resolve, delayMs))
-            delayMs *= 1.5
-          } else {
-            throw err // Re-throw error on the last attempt
-          }
-        }
+      if (resData.status !== 'success') {
+        throw new Error('Unable to submit pledge. Please try again later.');
       }
 
-      if (!response || !response.ok) {
-        const errorMsg = resData?.message || 'Failed to submit pledge after multiple attempts'
-        if (resData?.errors && resData.errors.length > 0) {
-          const details = resData.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
-          throw new Error(`${errorMsg} — ${details}`)
-        }
-        throw new Error(errorMsg)
-      }
-
-      setIsSubmitting(false)
-      setSubmitStatus('')
-      setModalStatus('success')
-      setShowSuccess(true)
-      console.log('Pledge saved successfully:', resData?.data?.id)
+      setIsSubmitting(false);
+      setSubmitStatus('');
+      setModalStatus('success');
+      setShowSuccess(true);
+      console.log('Pledge saved successfully');
     } catch (err: any) {
-      setIsSubmitting(false)
-      setSubmitStatus('')
-      const msg = err.name === 'AbortError'
-        ? 'The request timed out. The server may be starting up — please wait a moment and try again.'
-        : (err.message || 'An error occurred while submitting the pledge. Please try again.')
-      setModalStatus('error')
-      setModalErrorMessage(msg)
-      setShowSuccess(true)
-      console.error('Submission error:', err)
+      setIsSubmitting(false);
+      setSubmitStatus('');
+      
+      let msg = err.message || 'Unable to submit pledge. Please try again later.';
+      if (err.name === 'AbortError' || err.message === 'Network response was null' || msg.includes('Failed to fetch')) {
+        msg = 'Connection error. Please check your internet connection.';
+      }
+      
+      setModalStatus('error');
+      setModalErrorMessage(msg);
+      setShowSuccess(true);
+      console.error('Submission error:', err);
     }
   }
 
@@ -673,7 +641,14 @@ export default function PledgeForm() {
         isOpen={showSuccess} 
         status={modalStatus} 
         errorMessage={modalErrorMessage} 
-        onClose={() => setShowSuccess(false)} 
+        onClose={() => {
+          setShowSuccess(false)
+          if (modalStatus === 'success') {
+            reset()
+            sigPadRef.current?.clear()
+            setSavedSignature(null)
+          }
+        }} 
       />
     </motion.div>
   )
